@@ -3,6 +3,8 @@ package co.edu.escuelaing.cosw.loginappconnectedtoapi;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
@@ -29,11 +31,8 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import co.edu.escuelaing.cosw.loginappconnectedtoapi.data.entities.LoginWrapper;
 import co.edu.escuelaing.cosw.loginappconnectedtoapi.data.entities.Token;
@@ -71,12 +70,14 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     private View mProgressView;
     private View mLoginFormView;
     private final RetrofitNetwork retrofitNetwork = new RetrofitNetwork();
+    public static final String PREFS_NAME = "PreferencesFile";
+    //private String token;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
-        init();
+        setInitialView();
+
         // Set up the login form.
         mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
         populateAutoComplete();
@@ -103,6 +104,19 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
+    }
+
+    private void setInitialView() {
+        SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
+        String token = settings.getString("token",null);
+        //System.out.println(token);
+        if(token == null){
+            setContentView(R.layout.activity_login);
+        } else{
+            setContentView(R.layout.activity_login);
+            Intent i = new Intent(getApplicationContext(),TodoActivity.class);
+            startActivity(i);
+        }
     }
 
     private void init() {
@@ -202,7 +216,20 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             retrofitNetwork.login(new LoginWrapper(email, password), new RequestCallback<Token>() {
                 @Override
                 public void onSuccess(Token response) {
+                    String token = response.getAccessToken();
+                    retrofitNetwork.addSecureTokenInterceptor(token);
+                    // We need an Editor object to make preference changes.
+                    // All objects are from android.context.Context
+                    SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
+                    SharedPreferences.Editor editor = settings.edit();
+                    editor.putString("token", token);
+
+                    // Commit the edits!
+                    editor.commit();
                     System.out.println("Application token " + response.getAccessToken());
+                    showProgress(true);
+                    Intent i = new Intent(getApplicationContext(),TodoActivity.class);
+                    startActivity(i);
                 }
 
                 @Override
@@ -210,9 +237,9 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                     e.printStackTrace();
                 }
             });
-            showProgress(true);
-            mAuthTask = new UserLoginTask(email, password);
-            mAuthTask.execute((Void) null);
+
+            //mAuthTask = new UserLoginTask(email, password);
+            //mAuthTask.execute((Void) null);
         }
     }
 
