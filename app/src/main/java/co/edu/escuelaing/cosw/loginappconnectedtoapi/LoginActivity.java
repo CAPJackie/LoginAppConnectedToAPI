@@ -29,8 +29,17 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import co.edu.escuelaing.cosw.loginappconnectedtoapi.data.entities.LoginWrapper;
+import co.edu.escuelaing.cosw.loginappconnectedtoapi.data.entities.Token;
+import co.edu.escuelaing.cosw.loginappconnectedtoapi.data.network.NetworkException;
+import co.edu.escuelaing.cosw.loginappconnectedtoapi.data.network.RequestCallback;
+import co.edu.escuelaing.cosw.loginappconnectedtoapi.data.network.RetrofitNetwork;
 
 import static android.Manifest.permission.READ_CONTACTS;
 
@@ -61,11 +70,13 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
+    private final RetrofitNetwork retrofitNetwork = new RetrofitNetwork();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+        init();
         // Set up the login form.
         mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
         populateAutoComplete();
@@ -92,6 +103,10 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
+    }
+
+    private void init() {
+
     }
 
     private void populateAutoComplete() {
@@ -184,6 +199,17 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         } else {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
+            retrofitNetwork.login(new LoginWrapper(email, password), new RequestCallback<Token>() {
+                @Override
+                public void onSuccess(Token response) {
+                    System.out.println("Application token " + response.getAccessToken());
+                }
+
+                @Override
+                public void onFailed(NetworkException e) {
+                    e.printStackTrace();
+                }
+            });
             showProgress(true);
             mAuthTask = new UserLoginTask(email, password);
             mAuthTask.execute((Void) null);
